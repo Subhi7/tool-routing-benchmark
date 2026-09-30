@@ -29,6 +29,9 @@ def get_model(name):
     if name == "jev":
         from bench.models.jev import Jev
         return Jev()
+    if name == "laya":
+        from bench.models.laya import Laya
+        return Laya()
     raise ValueError(name)
 
 
@@ -40,6 +43,8 @@ def main():
     ap.add_argument("--limit", type=int)
     ap.add_argument("--workers", type=int, default=4)
     args = ap.parse_args()
+    if args.model != "jev":
+        args.workers = 1  # local models: sequential, so latency is per-request
     load_env()
 
     examples = [json.loads(l) for l in open(SPLITS[args.split])][:args.limit]
