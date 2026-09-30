@@ -70,5 +70,3 @@ None of the available tools should be used.
 8. Breakdowns by number of candidate tools.
 9. Cost: Jev from billed input tokens × published price. Laya/GLiClass run locally on a MacBook M5 Pro; we report their throughput on that machine and no dollar cost.
 10. Latency reported as observed end-to-end in this setup, separate from cost.
-
-Frozen decisions and pilot findings: [PILOT.md](PILOT.md).

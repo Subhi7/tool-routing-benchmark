@@ -3,4 +3,8 @@ __pycache__/
 .venv/
 .env
 .DS_Store
-runs/*/cache/
+
+# Kept local until publication: results, notes, drafts
+private/
+runs/
+results/
