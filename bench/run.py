@@ -32,6 +32,9 @@ def get_model(name):
     if name == "laya":
         from bench.models.laya import Laya
         return Laya()
+    if name == "gliclass":
+        from bench.models.gliclass import GLiClass
+        return GLiClass()
     raise ValueError(name)
 
 
