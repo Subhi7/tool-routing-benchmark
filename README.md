@@ -68,5 +68,7 @@ None of the available tools should be used.
 6. Full run; log raw responses, per-choice probabilities, latency, tokens.
 7. Metrics: accuracy (overall / tool / no-tool), false tool-call rate, macro-F1, ECE, Brier, accuracy-vs-coverage.
 8. Breakdowns by number of candidate tools.
-9. Cost: Jev from billed input tokens; Laya/GLiClass from measured GPU time × hourly price (inference-only and whole-experiment).
+9. Cost: Jev from billed input tokens × published price. Laya/GLiClass run locally on a MacBook M5 Pro; we report their throughput on that machine and no dollar cost.
 10. Latency reported as observed end-to-end in this setup, separate from cost.
+
+Frozen decisions and pilot findings: [PILOT.md](PILOT.md).
