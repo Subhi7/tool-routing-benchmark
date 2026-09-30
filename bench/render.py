@@ -13,6 +13,9 @@ import random
 import string
 
 NO_TOOL = "NO_TOOL"
+# The one instruction every model receives, verbatim.
+INSTRUCTION = ("Which of the available tools should be called to handle the final user request? "
+               "Choose NO_TOOL if none of the available tools should be used.")
 NO_TOOL_TEXT = "NO_TOOL\nNone of the available tools should be used."
 LETTERS = string.ascii_uppercase + "".join(f"{a}{b}" for a in "AB" for b in string.ascii_uppercase)
 
@@ -45,8 +48,13 @@ def build_choices(example, order="seeded", seed=0):
 
 
 def render(example, order="seeded", seed=0):
+    """Returns the same information in two shapes: `prompt` (one string, for
+    inspection and single-text models) and context/instruction/choices (for
+    APIs that take content and choices separately)."""
     choices = build_choices(example, order, seed)
+    context = render_context(example["messages"])
     body = "\n\n".join(f"{c['id']}\n{c['choice_text']}" for c in choices)
-    prompt = f"{render_context(example['messages'])}\n\nAvailable tools:\n\n{body}"
+    prompt = f"{context}\n\nAvailable tools:\n\n{body}"
     gold_id = next(c["id"] for c in choices if c["tool"] == example["gold"])
-    return dict(prompt=prompt, choices=choices, gold_id=gold_id)
+    return dict(prompt=prompt, context=context, instruction=INSTRUCTION,
+                choices=choices, gold_id=gold_id)
