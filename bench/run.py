@@ -35,6 +35,9 @@ def get_model(name):
     if name == "gliclass":
         from bench.models.gliclass import GLiClass
         return GLiClass()
+    if name == "gliclass_chunked":
+        from bench.models.gliclass_chunked import GLiClassChunked
+        return GLiClassChunked()
     raise ValueError(name)
 
 

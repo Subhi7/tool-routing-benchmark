@@ -21,7 +21,7 @@ import json
 import math
 import os
 
-MODELS = ["jev", "laya", "gliclass"]
+MODELS = ["jev", "laya", "gliclass", "gliclass_chunked"]
 
 
 def load(split, order, model):
