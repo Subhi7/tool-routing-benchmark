@@ -58,15 +58,63 @@ None of the available tools should be used.
   need per-choice label text (e.g. GLiClass) get `choice_text`, which is exactly
   the block under that letter, so all models receive the same information.
 
+## Models
+
+| Model | Adapter | Notes |
+|---|---|---|
+| Jev | `bench/models/jev.py` | TypeSafe API `POST /v1/systemone`, `model="jev-latest"`. Requires `TYPESAFE_API_KEY` in `.env` (billed per call; see Cost below). No input-length cap on our side. |
+| Laya | `bench/models/laya.py` | `laya.Router()` defaults. Each candidate tool description is hard-capped at 48 tokens by the library itself (`laya/common.py`, unconditional, no exposed override in the latest release) — logged per row as `option_tokens_seen` / `option_tokens_full`, not silently absorbed into `usage.truncated`. |
+| GLiClass (default) | `bench/models/gliclass.py` | `knowledgator/gliclass-large-v1.0`, single-label softmax, one combined sequence right-truncated at 1,024 tokens. The library used the simplest way — representative of an out-of-the-box deployment, truncation and all. |
+| GLiClass (chunked) | `bench/models/gliclass_chunked.py` | Same checkpoint, using the library's own `ZeroShotClassificationWithChunkingPipeline` to score candidates in token-budget-safe chunks instead of one truncated sequence — see the module's own docstring for why a naive `labels_chunk_size=1` doesn't work and what does. Use this one for any "did GLiClass actually see the full tool definitions" comparison; use the default adapter for an out-of-the-box baseline. |
+
+No fine-tuning, no BFCL examples in any prompt, for any model.
+
+## Setup
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements-lock.txt
+cp .env.example .env   # fill in TYPESAFE_API_KEY (only needed for the jev model)
+```
+
+Laya and GLiClass run locally (CPU/CUDA/Apple MPS auto-detected); Jev calls the TypeSafe API.
+
+## Running the benchmark
+
+```bash
+# one-time: build the frozen benchmark + pilot split
+python3 -m bench.convert
+
+# smoke test any model on 1 example before committing to a full run
+python3 -m bench.run --model jev --split pilot --order seeded --limit 1
+
+# pilot (100 examples) or full (1,933), per model, per choice order
+python3 -m bench.run --model <jev|laya|gliclass|gliclass_chunked> --split <pilot|full> --order <seeded|reversed>
+
+# blind irrelevance sub-labeling (no_relevant_tool vs relevant_but_uncallable) — see
+# bench/tag_irrelevance.py's own docstring for the rule and how TAU was picked
+python3 -m bench.tag_irrelevance --split full
+
+# metrics table + results/<split>_report.json
+python3 -m bench.report --split <pilot|full>
+```
+
+`bench.run` is resumable: it skips `example_id`s already present in the output file, so a
+rerun only fills in what's missing. To force a genuine rerun, move or delete the existing
+`runs/<split>_<order>/<model>.jsonl` first.
+
 ## Protocol
 
 1. Freeze benchmark ✅
 2. Canonical input ✅
-3. Lock models: Jev (TypeSafe `/v1/systemone`), Laya `Router`, `knowledgator/gliclass-large-v1.0`. No fine-tuning, no BFCL examples in prompts.
-4. 100-example pilot (`data/pilot_100.jsonl`, 50 + 50, seed 20260928); inspect every disagreement.
-5. Choice-order sensitivity: seeded vs reversed on the pilot.
-6. Full run; log raw responses, per-choice probabilities, latency, tokens.
-7. Metrics: accuracy (overall / tool / no-tool), false tool-call rate, macro-F1, ECE, Brier, accuracy-vs-coverage.
-8. Breakdowns by number of candidate tools.
-9. Cost: Jev from billed input tokens × published price. Laya/GLiClass run locally on a MacBook M5 Pro; we report their throughput on that machine and no dollar cost.
-10. Latency reported as observed end-to-end in this setup, separate from cost.
+3. Lock models: Jev, Laya, GLiClass (default + chunked). No fine-tuning, no BFCL examples in prompts. ✅
+4. 100-example pilot (`data/pilot_100.jsonl`, 50 + 50, seed 20260928); inspect every disagreement. ✅
+5. Choice-order sensitivity: seeded vs reversed, on the pilot and on the full run. ✅
+6. Full run (1,933 examples, both orders, all four adapters); raw responses, per-choice probabilities, latency, and tokens logged per row. ✅
+7. Metrics: accuracy (overall / tool / no-tool), false-call rate, balanced accuracy, abstain-F1, ECE, Brier, accuracy-vs-coverage. ✅ — `bench/report.py`.
+8. Breakdowns by number of candidate tools. ✅ — `bench/report.py`'s `by_n_tools`.
+9. Cost: Jev from billed input tokens (logged per row as `input_tokens`). Laya/GLiClass run
+   locally with no rented GPU (explicit decision) — reported as latency/throughput on the
+   machine they ran on, not converted to a dollar figure.
+10. Latency reported as observed end-to-end in this setup (API round-trip for Jev, on-device
+    inference for Laya/GLiClass) — not a portable cross-model speed comparison. ✅
